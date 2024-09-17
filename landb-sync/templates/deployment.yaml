@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "landb-sync.fullname" . }}
+  namespace: {{ template "landb-sync.namespace" . }}
+  labels:
+    app: {{ template "landb-sync.name" . }}
+{{ include "landb-sync.labels" . | indent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "landb-sync.name" . }}
+{{ include "landb-sync.labels" . | indent 6 }}
+  template:
+    metadata:
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app: {{ template "landb-sync.name" . }}
+{{ include "landb-sync.labels" . | indent 8 }}
+    spec:
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      containers:
+      - name: {{ template "landb-sync.fullname" . }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: Always
+        command:
+        - /landb-sync
+        - serve
+        - --tls-cert-file=/cert/cert
+        - --tls-key-file=/cert/key
+        - --num-ingress-nodes={{ .Values.numIngressNodes }}
+        - --bypass-cern-dns={{ .Values.landbAlias.admissionWebhooks.bypassCernDNS | default false}}
+        - --state-check-period={{ .Values.evaluationPeriod }}
+        - --landb-alias-enabled={{ .Values.landbAlias.enabled }}
+        - --landb-set-enabled={{ .Values.landbSet.enabled }}
+        {{- if .Values.landbSet.enabled }}
+        - --landb-set-name={{ .Values.landbSet.name }}
+        {{- end }}
+        - --log-level=Debug
+        {{- if .Values.resources }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        {{- end }}
+        ports:
+        - containerPort: 443
+        volumeMounts:
+        - mountPath: /etc/kubernetes/ca-bundle.crt
+          name: ca-bundle
+          readOnly: true
+        - name: cloud-config
+          mountPath: /config
+          readOnly: true
+        - name: tls-secret
+          mountPath: /cert
+          readOnly: true
+      serviceAccount: {{ template "landb-sync.fullname" . }}
+      serviceAccountName: {{ template "landb-sync.fullname" . }}
+      volumes:
+      - name: cloud-config
+        hostPath:
+          path: {{ .Values.cloudPath }}
+      - name: ca-bundle
+        hostPath:
+          path: {{ .Values.CABundlePath }}
+      - name: tls-secret
+        secret:
+          defaultMode: 420
+          secretName: {{ template "landb-sync.fullname" . }}-admission

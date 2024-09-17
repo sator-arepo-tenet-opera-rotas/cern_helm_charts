@@ -1,0 +1,94 @@
+## The number of desired ingress nodes
+##
+nameOverride: ""
+fullnameOverride: ""
+
+## landb-sync image
+##
+image:
+  repository: registry.cern.ch/magnum/landb-sync
+  tag: 0.3.0
+
+## The number of desired ingress nodes
+##
+numIngressNodes: 2
+
+landbAlias:
+  enabled: true
+
+  admissionWebhooks:
+    enabled: true
+    ## If the server should accept hostnames that are atributed to
+    ## out-of-cluster nodes.
+    ##
+    bypassCernDNS: false
+    failurePolicy: Fail
+    timeout: 30
+    ## A PEM encoded CA bundle which will be used to validate the webhook's server certificate.
+    ## If unspecified, system trust roots on the apiserver are used.
+    caBundle: ""
+    ## If enabled, generate a self-signed certificate, then patch the webhook configurations with the generated data.
+    ## On chart upgrades (or if the secret exists) the cert will not be re-generated. You can use this to provide your own
+    ## certs ahead of time if you wish.
+    ##
+    patch:
+      enabled: true
+      image:
+        repository: registry.cern.ch/magnum/kube-webhook-certgen
+        tag: v1.0
+        sha: "a0f92f5f828e9bf8e3a4c672080067e0079e95f9af8583059eab0c11f4dc7cfe"
+        pullPolicy: IfNotPresent
+      resources: {}
+      ## Provide a priority class name to the webhook patching job
+      ##
+      priorityClassName: ""
+      podAnnotations: {}
+      nodeSelector: {}
+      affinity: {}
+      tolerations: []
+
+      ## SecurityContext holds pod-level security attributes and common container settings.
+      ## This defaults to non root user with uid 2000 and gid 2000. *v1.PodSecurityContext  false
+      ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+      ##
+      securityContext:
+        runAsGroup: 2000
+        runAsNonRoot: true
+        runAsUser: 2000
+
+    # Use certmanager to generate webhook certs
+    certManager:
+      enabled: false
+      # issuerRef:
+      #   name: "issuer"
+      #   kind: "ClusterIssuer"
+
+landbSet:
+  enabled: false
+  name: ""
+
+## The period between DNS state checks and updates
+##
+evaluationPeriod: "5m"
+
+## Path to the OpenStack cloud configuration file
+##
+cloudPath: /etc/kubernetes/cloud-config
+
+## Path to the Cluster CA Bundle file
+##
+CABundlePath: /etc/kubernetes/ca-bundle.crt
+
+## Resource limits & requests
+##
+resources:
+  requests:
+    cpu: 1m
+    memory: 10Mi
+  # limits:
+  #   cpu: 2m
+  #   memory: 15Mi
+
+## Priority class assigned to the Pods
+##
+priorityClassName: ""

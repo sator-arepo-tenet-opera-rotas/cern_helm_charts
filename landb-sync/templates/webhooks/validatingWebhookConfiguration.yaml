@@ -1,0 +1,41 @@
+{{- /*
+This section is an adaptation of upstream code found at:
+https://github.com/prometheus-community/helm-charts/tree/9abe529f480f7d6d5293701b0d92250acfe5a0b5/charts/kube-prometheus-stack/templates/prometheus-operator/admission-webhooks
+*/}}
+{{- if .Values.landbAlias.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ template "landb-sync.fullname" . }}-admission
+  annotations:
+    certmanager.k8s.io/inject-ca-from: {{ printf "%s/%s-admission" .Release.Namespace (include "landb-sync.fullname" .) | quote }}
+    cert-manager.io/inject-ca-from: {{ printf "%s/%s-admission" .Release.Namespace (include "landb-sync.fullname" .) | quote }}
+  labels:
+    app: {{ template "landb-sync.name" . }}-admission
+{{ include "landb-sync.labels" . | indent 4 }}
+webhooks:
+- name: {{ template "landb-sync.fullname" . }}.{{ .Release.Namespace }}.svc
+  {{- if .Values.landbAlias.admissionWebhooks.patch.enabled  }}
+  failurePolicy: Ignore
+  {{- else }}
+  failurePolicy: {{ .Values.landbAlias.admissionWebhooks.failurePolicy }}
+  {{- end }}
+  admissionReviewVersions:
+  - v1
+  - v1beta1
+  sideEffects: None
+  clientConfig:
+    service:
+      namespace: {{ .Release.Namespace }}
+      name: {{ template "landb-sync.fullname" . }}
+      path: "/validate"
+    {{- if and .Values.landbAlias.admissionWebhooks.caBundle (not .Values.landbAlias.admissionWebhooks.patch.enabled) (not .Values.landbAlias.admissionWebhooks.certManager.enabled) }}
+    caBundle: {{ .Values.landbAlias.admissionWebhooks.caBundle }}
+    {{- end }}
+  rules:
+  - apiGroups: ["networking.k8s.io","extensions"]
+    apiVersions: ['*']
+    operations: [ "CREATE", "UPDATE"]
+    resources: ["ingresses"]
+  timeoutSeconds: {{ .Values.landbAlias.admissionWebhooks.timeout }}
+{{- end }}

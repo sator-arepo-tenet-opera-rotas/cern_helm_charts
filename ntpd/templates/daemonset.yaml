@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "ntpd.fullname" . }}
+  labels:
+    app: {{ template "ntpd.name" . }}
+    chart: {{ template "ntpd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "ntpd.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "ntpd.name" . }}
+        chart: {{ template "ntpd.chart" . }}
+        release: {{ .Release.Name }}
+    spec:
+      hostNetwork: true
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            capabilities:
+              add:
+                - SYS_TIME
+                - SYS_NICE
+          volumeMounts:
+            - name: ntpd-config
+              mountPath: /etc/ntp.conf
+              subPath: ntp.conf
+              mode: 600
+      volumes:
+        - name: ntpd-config
+          configMap: 
+            name: ntpd-config

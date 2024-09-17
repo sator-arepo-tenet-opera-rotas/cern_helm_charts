@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ntpd-config
+  labels:
+    app: {{ template "ntpd.name" . }}
+    chart: {{ template "ntpd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  ntp.conf: |+
+    disable monitor
+    {{ range $server := .Values.servers }}
+      server {{ $server }}
+    {{ end  }}
+    fudge 127.127.1.0 stratum 10
+    

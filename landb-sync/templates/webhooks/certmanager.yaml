@@ -1,0 +1,57 @@
+{{- if .Values.landbAlias.admissionWebhooks.certManager.enabled -}}
+{{- if not .Values.landbAlias.admissionWebhooks.certManager.issuerRef -}}
+# Create a selfsigned Issuer, in order to create a root CA certificate for
+# signing webhook serving certificates
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ template "landb-sync" . }}-self-signed-issuer
+  namespace: {{ template "landb-sync.namespace" . }}
+spec:
+  selfSigned: {}
+---
+# Generate a CA Certificate used to sign certificates for the webhook
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ template "landb-sync" . }}-root-cert
+  namespace: {{ template "landb-sync.namespace" . }}
+spec:
+  secretName: {{ template "landb-sync" . }}-root-cert
+  duration: 43800h0m0s # 5y
+  issuerRef:
+    name: {{ template "landb-sync" . }}-self-signed-issuer
+  commonName: "ca.webhook.landb-sync"
+  isCA: true
+---
+# Create an Issuer that uses the above generated CA certificate to issue certs
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ template "landb-sync" . }}-root-issuer
+  namespace: {{ template "landb-sync.namespace" . }}
+spec:
+  ca:
+    secretName: {{ template "landb-sync" . }}-root-cert
+{{- end }}
+---
+# generate a serving certificate for the apiservices to use
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ template "landb-sync" . }}-admission
+  namespace: {{ template "landb-sync.namespace" . }}
+spec:
+  secretName: {{ template "landb-sync" . }}-admission
+  duration: 8760h0m0s # 1y
+  issuerRef:
+    {{- if .Values.landbAlias.admissionWebhooks.certManager.issuerRef }}
+    {{- toYaml .Values.landbAlias.admissionWebhooks.certManager.issuerRef | nindent 4 }}
+    {{- else }}
+    name: {{ template "landb-sync" . }}-root-issuer
+    {{- end }}
+  dnsNames:
+  - {{ template "landb-sync.fullname" . }}
+  - {{ template "landb-sync.fullname" . }}.{{ template "landb-sync.namespace" . }}
+  - {{ template "landb-sync.fullname" . }}.{{ template "landb-sync.namespace" . }}.svc
+{{- end -}}
