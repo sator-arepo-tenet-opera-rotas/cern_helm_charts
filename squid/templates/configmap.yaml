@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: squid-config
+  labels:
+    app.kubernetes.io/name: {{ include "squid.name" . }}
+    helm.sh/chart: {{ include "squid.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  squid.conf: |+
+    {{- range $value := .Values.config }}
+    {{ $value }}
+    {{- end }}
