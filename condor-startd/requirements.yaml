@@ -1,0 +1,5 @@
+#FIXME: issue with helm fetch: https://github.com/kubernetes/helm/issues/2916
+##dependencies:
+#- name: sssd
+#  version: "0.1.0"
+#  repository: "https://test-charts.web.cern.ch/test-charts"

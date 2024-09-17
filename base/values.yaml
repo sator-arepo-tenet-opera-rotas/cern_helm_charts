@@ -1,0 +1,12 @@
+keytab:
+  image:
+    repository: gitlab-registry.cern.ch/cloud/cern-keytab
+    tag: v0.5.0
+hostcert:
+  image:
+    repository: gitlab-registry.cern.ch/cloud/cern-hostcert
+    tag: v0.5.0
+dummy:
+  image:
+    repository: registry.cern.ch/docker.io/library/alpine
+    tag: latest

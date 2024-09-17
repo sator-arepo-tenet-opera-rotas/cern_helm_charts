@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: condor-config-local
+  labels:
+    app: {{ template "condor-startd.name" . }}
+    chart: {{ template "condor-startd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  condor_config.local: |+
+    CONDOR_ADMIN = {{ .Values.admin.email }}
+    EMAIL_DOMAIN = {{ .Values.domain.email }}
+    ALL_DEBUG = {{ .Values.debug }}

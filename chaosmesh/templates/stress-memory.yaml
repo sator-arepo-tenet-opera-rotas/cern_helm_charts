@@ -1,0 +1,22 @@
+{{- if .Values.experiments.stressMemory }}
+{{- $namespaces := .Values.namespaces }}
+{{- range $app := .Values.apps }}
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: stress-memory
+  namespace: {{ $.Release.Namespace }}
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - {{ $namespaces }}
+    labelSelectors:
+      app: "{{ $app }}"
+  stressors:
+    memory: 
+      workers: 1
+      size: 50MiB
+  duration: "10s"
+{{- end }}
+{{- end }}

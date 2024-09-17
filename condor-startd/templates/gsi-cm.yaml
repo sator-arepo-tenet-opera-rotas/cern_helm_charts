@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: condor-gsi-conf
+  labels:
+    app: {{ template "condor-startd.name" . }}
+    chart: {{ template "condor-startd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  gsi.conf: |+
+    {{- range $key, $value := .Values.gsi.conf }}
+      {{ $key }}={{ $value }}
+    {{- end }}
+  grid-mapfile: |+
+    {{- range $value := .Values.gsi.gridmap }}
+      {{ $value }}
+    {{- end }}
+  groupmapfile: |+
+    {{- range $value := .Values.gsi.groupmap }}
+      {{ $value }}
+    {{- end }}
+  voms-grid-mapfile: |+
+    {{- range $value := .Values.gsi.gridmap }}
+      {{ $value }}
+    {{- end }}

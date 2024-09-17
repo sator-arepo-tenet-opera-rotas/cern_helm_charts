@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "condor-startd.fullname" . }}
+  labels:
+    app: {{ template "condor-startd.name" . }}
+    chart: {{ template "condor-startd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "condor-startd.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "condor-startd.name" . }}
+        chart: {{ template "condor-startd.chart" . }}
+        release: {{ .Release.Name }}
+    spec:
+      hostNetwork: true
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          #command: ["/usr/sbin/condor_startd", "-f"]
+          command: ["sleep", "1000000"]
+          securityContext:
+            privileged: true
+          livenessProbe:
+            exec:
+              command:
+              - condor_who
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+              - condor_who
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          volumeMounts:
+            - name: condor-config-local
+              mountPath: /etc/condor/condor_config.local
+              subPath: condor_config.local
+            - name: condor-cert-map
+              mountPath: /etc/condor/certificate_mapfile
+              subPath: certificate_mapfile
+            - name: condor-configd
+              mountPath: /etc/condor/config.d
+            - name: condor-gsi-conf
+              mountPath: {{ .Values.gsi.directory }}/gsi.conf
+              subPath: gsi.conf
+            - name: condor-gsi-conf
+              mountPath: {{ .Values.gsi.directory }}/grid-mapfile
+              subPath: grid-mapfile
+            {{ if .Values.gsi.groupmapfile }}
+            - name: condor-gsi-conf
+              mountPath: {{ .Values.gsi.directory }}/groupmapfile
+              subPath: groupmapfile
+            - name: condor-gsi-conf
+              mountPath: {{ .Values.gsi.directory }}/voms-grid-mapfile
+              subPath: voms-grid-mapfile
+            {{ end }}
+            - name: condor-gsi-cert
+              mountPath: {{ .Values.gsi.directory }}/hostcert.pem
+              subPath: hostcert.pem
+            - name: condor-gsi-key
+              mountPath: {{ .Values.gsi.directory }}/hostkey.pem
+              subPath: hostkey.pem
+      volumes:
+        - name: condor-config-local
+          configMap: 
+            name: condor-config-local
+        - name: condor-cert-map
+          configMap: 
+            name: condor-cert-map
+        - name: condor-configd
+          configMap: 
+            name: condor-configd
+        - name: condor-gsi-conf
+          configMap: 
+            name: condor-gsi-conf
+        - name: condor-gsi-cert
+          secret: 
+            secretName: condor-gsi-cert
+            items:
+              - key: hostcert.pem
+                path: hostcert.pem
+                mode: 0644
+        - name: condor-gsi-key
+          secret: 
+            secretName: condor-gsi-key
+            items:
+              - key: hostkey.pem
+                path: hostkey.pem
+                mode: 0400

@@ -1,0 +1,4 @@
+apiVersion: v1
+description: A Helm chart for base CERN integration
+name: base
+version: 0.1.1

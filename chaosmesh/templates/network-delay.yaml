@@ -1,0 +1,24 @@
+{{- if .Values.experiments.networkDelay }}
+{{- $namespaces := .Values.namespaces }}
+{{- range $app := .Values.apps }}
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-delay
+  namespace: {{ $.Release.Namespace }}
+spec:
+  action: delay
+  mode: all
+  duration: '30s'
+  selector:
+    namespaces:
+      - {{ $namespaces }}
+    labelSelectors:
+      app: "{{ $app }}"
+  delay:
+    latency: '10ms' #indicates the network latency
+    correlation: '100' #correlation b/w the current latency and previous one 
+    jitter: '0ms' #indicates the range of the network policy
+  direction: to
+{{- end }}
+{{- end }}

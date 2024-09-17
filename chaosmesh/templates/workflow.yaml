@@ -1,0 +1,46 @@
+{{- if .Values.experiments.workFlow }}
+{{- $namespaces := .Values.namespaces }}
+{{- range $app := .Values.apps }}
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Workflow
+metadata:
+  name: workflow
+  namespace: {{ $.Release.Namespace }}
+spec:
+  entry: entry
+  templates:
+    - name: entry
+      templateType: Serial
+      deadline: 500s
+      children:
+        - after-1m
+        - pod-kill
+        - pod-failure
+    - name: after-1m
+      templateType: Suspend
+      deadline: 1m
+    - name: pod-kill
+      templateType: PodChaos
+      deadline: 1m
+      podChaos:
+        action: pod-kill
+        mode: all
+        selector:
+          namespaces:
+            - {{ $namespaces }}
+          labelSelectors:
+            app: "{{ $app }}"
+    - name: pod-failure
+      templateType: PodChaos
+      deadline: 1m
+      podChaos:
+        action: pod-failure
+        mode: all
+        selector:
+          namespaces:
+            - {{ $namespaces }}
+          labelSelectors:
+            app: "{{ $app }}"
+{{- end }}
+{{- end }}
+
