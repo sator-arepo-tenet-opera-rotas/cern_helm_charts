@@ -1,0 +1,38 @@
+image:
+  repository: registry.cern.ch/cloud/telegraf-exporter/cassandra
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+telegraf:
+  interval: "60s"
+
+command:
+ - telegraf
+ - '--config-directory'
+ - '/etc/telegraf/telegraf.d/' 
+volumeMounts:
+  - mountPath: /etc/telegraf/telegraf.conf
+    name: telegraf-config
+    subPath: telegraf.conf
+  - mountPath: /etc/telegraf/telegraf.d/
+    name: telegraf-directory
+volumes:
+  - name: telegraf-config
+    configMap: 
+      name: telegraf-config
+  - name: telegraf-directory
+    configMap:
+      name: telegraf-directory
+      defaultMode: 511
+
+influx:
+  database: dbod-cassflux.cern.ch
+  port: 8082
+  username: admin
+  password: ""
+replicaCount: 1
+region: sdn2
+
+cassandra:
+  ip: "188.184.74.195"
+  port: 9041

@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-config
+data: 
+  telegraf.conf: |
+    # Telegraf Configuration
+    [global_tags]
+    [agent]
+      interval = {{ .Values.telegraf.interval | default "10s" | quote }}
+      round_interval = true
+      metric_batch_size = 1000
+      metric_buffer_limit = 10000
+      collection_jitter = "0s"
+      flush_interval = "10s"
+      flush_jitter = "0s"
+      precision = ""
+      debug = true
+      quiet = false
+      logfile = ""
+      hostname = ""
+      omit_hostname = true
+      
+    [[outputs.influxdb]]
+      urls = ["https://${INFLUX_DATABASE}:${INFLUX_PORT}"]
+      database = "telegraf"
+      username = "${INFLUX_USERNAME}"
+      password = "${INFLUX_PASSWORD}"
+      insecure_skip_verify = true
+    
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-directory
+data: 
+  tungsten.conf: | 
+    [[inputs.exec]]
+      commands = ["/etc/telegraf/telegraf.d/cqlsh.sh"]
+      data_format = "json"
+      name_override = "tungsten_{{ .Values.region }}"
+      json_string_fields = ["status"]
+      tag_keys = ["id", "tenant_id", "name"]
+      [tags]
+        region = "{{ .Values.region }}"
+
+  cqlsh.sh: |
+    #!/bin/bash
+    cqlsh {{ .Values.cassandra.ip }} {{ .Values.cassandra.port }} \
+    -k svc_monitor_keyspace \
+    -e "select json value from loadbalancer_table" | \
+    awk 'NR>3 {print $0}' | \
+    sed 's/\\\\/\\/g' | \
+    head -n -2 | jq -r .value | jq -s .
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegraf-env
+data:
+  INFLUX_DATABASE: {{ .Values.influx.database }}
+  INFLUX_PORT:     {{ .Values.influx.port | quote }}
+  INFLUX_USERNAME: {{ .Values.influx.username }}
