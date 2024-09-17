@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    app: prometheus
+    release: prometheus-operator
+  name: cern.prometheus-kube-apiserver.aggregated-rules.yaml
+  namespace: kube-system
+spec:
+  groups:
+  - interval: '{{.Values.evaluationInterval}}'
+    name: cern.kube-apiserver.aggregated-rules
+    rules:
+    - expr: histogram_quantile(0.99, sum(rate(apiserver_request_duration_seconds_bucket{job="apiserver"}[{{.Values.metricWindow}}]))
+        without(instance, pod))
+      labels:
+        aggregate: '{{.Values.evaluationInterval}}'
+        quantile: '0.99'
+      record: cern:cluster_quantile:apiserver_request_duration_seconds:histogram_quantile
+    - expr: histogram_quantile(0.9, sum(rate(apiserver_request_duration_seconds_bucket{job="apiserver"}[{{.Values.metricWindow}}]))
+        without(instance, pod))
+      labels:
+        aggregate: '{{.Values.evaluationInterval}}'
+        quantile: '0.9'
+      record: cern:cluster_quantile:apiserver_request_duration_seconds:histogram_quantile
+    - expr: histogram_quantile(0.5, sum(rate(apiserver_request_duration_seconds_bucket{job="apiserver"}[{{.Values.metricWindow}}]))
+        without(instance, pod))
+      labels:
+        aggregate: '{{.Values.evaluationInterval}}'
+        quantile: '0.5'
+      record: cern:cluster_quantile:apiserver_request_duration_seconds:histogram_quantile

@@ -1,0 +1,49 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    app: prometheus
+    release: prometheus-operator
+  name: cern.monit-base.node.rules
+  namespace: kube-system
+spec:
+  groups:
+  - interval: {{ .Values.evaluationInterval }}
+    name: cern.monit-base.node.rules
+    rules:
+    - expr: sum(rate(node_cpu_seconds_total{job="node-exporter", mode!="idle"}[{{ .Values.metricWindow }}])) by (cpu,instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_cpu_seconds_total"}
+      record: cern:node:cpu:usage:rate:total
+    - expr: avg by (instance) (avg_over_time(node_memory_MemTotal_bytes{job="node-exporter"}[{{ .Values.metricWindow }}]) - avg_over_time(node_memory_MemFree_bytes{job="node-exporter"}[{{ .Values.metricWindow }}]) - avg_over_time(node_memory_Buffers_bytes{job="node-exporter"}[{{ .Values.metricWindow }}]) - avg_over_time(node_memory_Cached_bytes{job="node-exporter"}[{{ .Values.metricWindow }}]))
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true"}
+      record: cern:node:memory:usage:avg
+    - expr: avg(avg_over_time(node_memory_Buffers_bytes{job="node-exporter"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_memory_Buffers_bytes"}
+      record: cern:node:memory:buffers:avg
+    - expr: avg(avg_over_time(node_memory_MemFree_bytes{job="node-exporter"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_memory_MemFree_bytes"}
+      record: cern:node:memory:free:avg
+    - expr: avg(avg_over_time(node_memory_Cached_bytes{job="node-exporter"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_memory_Cached_bytes"}
+      record: cern:node:memory:cached:avg
+    - expr: avg(avg_over_time(node_load15{job="node-exporter"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_load15"}
+      record: cern:instance:load:avg
+    - expr: avg(rate(node_disk_io_time_seconds_total{job="node-exporter"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_disk_io_time_seconds_total"}
+      record: cern:node:disk_io_time_seconds:rate:avg
+    - expr: avg(rate(node_disk_read_bytes_total{job="node-exporter"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_disk_read_bytes_total"}
+      record: cern:node:disk_read_bytes:rate:avg
+    - expr: avg(rate(node_disk_written_bytes_total{job="node-exporter"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_disk_written_bytes_total"}
+      record: cern:node:disk_written_bytes:rate:avg
+    - expr: sum(avg_over_time(node_filesystem_size_bytes{mountpoint="/"}[{{ .Values.metricWindow }}]) - avg_over_time(node_filesystem_free_bytes{mountpoint="/"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true"}
+      record: cern:node:disk_usage:total
+    - expr: sum(rate(node_network_receive_bytes_total{job="node-exporter", device!~"lo"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_network_receive_bytes_total"}
+      record: cern:node:network:receive_bytes:rate:total
+    - expr: sum(rate(node_network_transmit_bytes_total{job="node-exporter", device!~"lo"}[{{ .Values.metricWindow }}])) by (instance)
+      labels: {aggregate: {{ .Values.evaluationInterval }}, monit_forward: "true", monit_metric_name: "node_network_transmit_bytes_total"}
+      record: cern:node:network:transmit_bytes:rate:total

@@ -1,0 +1,8 @@
+---
+
+#https://helm.sh/docs/developing_charts/
+apiVersion: v1
+name: prometheus-cern
+version: 0.2.1
+description: A Helm to configure CERN specific prometheus options
+appVersion: 8.2.2

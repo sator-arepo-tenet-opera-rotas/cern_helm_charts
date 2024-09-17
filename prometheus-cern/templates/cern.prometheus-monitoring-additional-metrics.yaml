@@ -1,0 +1,61 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    app: prometheus
+    release: prometheus-operator
+  name: cern.prometheus-monitoring-additional-metrics.rules
+  namespace: kube-system
+spec:
+  groups:
+  - interval: {{ .Values.evaluationInterval }}
+    name: cern.prometheus-monitoring-additional-metrics.rules
+    rules:
+    - expr: sum by (namespace,pod_name,container_name)( rate(container_cpu_usage_seconds_total
+        {image!="",container_name!="POD"} [{{ .Values.metricWindow }}] ) )
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:namespace:pod:container:cpu:sum_rate
+    - expr: sort_desc(sum by (namespace, pod_name)
+        (rate (container_network_receive_bytes_total [{{ .Values.metricWindow }}] )) )
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:namespace:pod::network_rx:sum_rate
+    - expr: sort_desc(sum by (namespace, pod_name)
+        (rate(container_network_transmit_bytes_total [{{ .Values.metricWindow }}] )) )
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:namespace:pod::network_tx:sum_rate
+    - expr: sum by (instance, cpu) (rate(node_cpu_seconds_total
+        {job="node-exporter", mode!="idle"}[{{ .Values.metricWindow }}]))
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:node:cpu_usage:sum_rate
+    - expr: max by (instance) (
+        max_over_time(node_memory_MemTotal_bytes{job="node-exporter"}[{{ .Values.metricWindow }}])
+        - max_over_time(node_memory_MemFree_bytes{job="node-exporter"}[{{ .Values.metricWindow }}])
+        - max_over_time(node_memory_Buffers_bytes{job="node-exporter"}[{{ .Values.metricWindow }}])
+        - max_over_time(node_memory_Cached_bytes{job="node-exporter"}[{{ .Values.metricWindow }}]))
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:node:memory_used:max
+    - expr: max by (instance) (rate(node_disk_read_bytes_total {job="node-exporter"}[{{ .Values.metricWindow }}]))
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:node:disk_read:max_rate
+    - expr: max by (instance) (rate(node_disk_written_bytes_total{job="node-exporter"}[{{ .Values.metricWindow }}]))
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:node:disk_write:max_rate
+    - expr: max by (instance) (rate(node_disk_io_time_seconds_total {job="node-exporter"}[{{ .Values.metricWindow }}]))
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:node:disk_io_time:max_rate
+    - expr: max_over_time(node:node_filesystem_usage:[{{ .Values.metricWindow }}])
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: 'cern:node:node_filesystem_usage:'
+    - expr: max by (instance) (rate(node_network_receive_bytes_total
+        {job="node-exporter", device!~"lo"}[{{ .Values.metricWindow }}]))
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:node:network_rx:max_rate
+    - expr: max by (instance) (rate(node_network_transmit_bytes_total
+        {job="node-exporter", device!~"lo"}[{{ .Values.metricWindow }}]))
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:node:network_tx:max_rate
+    - expr: max by (instance)(
+        max_over_time(node_filesystem_files {job="node-exporter"}[{{ .Values.metricWindow }}])
+        - max_over_time(node_filesystem_files_free{job="node-exporter"}[{{ .Values.metricWindow }}]))
+      labels: {aggregate: {{ .Values.evaluationInterval }}}
+      record: cern:nodes:inodes_usage:max

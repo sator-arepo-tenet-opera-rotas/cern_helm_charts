@@ -1,0 +1,4 @@
+dependencies:
+  - name: ntpd
+    version: 0.1.0
+    repository: https://s3.cern.ch/cern-charts

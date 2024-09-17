@@ -1,0 +1,4 @@
+# The time period between evaluations
+evaluationInterval: 1h
+# The sample interval to consider when generating aggregations
+metricWindow: 1h

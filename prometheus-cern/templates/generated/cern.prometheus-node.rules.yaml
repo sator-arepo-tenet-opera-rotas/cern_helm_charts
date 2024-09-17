@@ -1,0 +1,35 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    app: prometheus
+    release: prometheus-operator
+  name: cern.prometheus-node.aggregated-rules.yaml
+  namespace: kube-system
+spec:
+  groups:
+  - interval: '{{.Values.evaluationInterval}}'
+    name: cern.node.aggregated-rules
+    rules:
+    - expr: sum(min(kube_pod_info) by (node))
+      labels:
+        aggregate: '{{.Values.evaluationInterval}}'
+      record: 'cern::kube_pod_info_node_count:'
+    - expr: max(label_replace(kube_pod_info{job="kube-state-metrics"}, "pod", "$1",
+        "pod", "(.*)")) by (node, namespace, pod)
+      labels:
+        aggregate: '{{.Values.evaluationInterval}}'
+      record: 'cern:node_namespace_pod:kube_pod_info:'
+    - expr: "count by (node) (sum by (node, cpu) (\n  node_cpu_seconds_total{job=\"\
+        node-exporter\"}\n* on (namespace, pod) group_left(node)\n  node_namespace_pod:kube_pod_info:\n\
+        ))"
+      labels:
+        aggregate: '{{.Values.evaluationInterval}}'
+      record: cern:node:node_num_cpu:sum
+    - expr: "sum(\n  node_memory_MemAvailable_bytes{job=\"node-exporter\"} or\n  (\n\
+        \    node_memory_Buffers_bytes{job=\"node-exporter\"} +\n    node_memory_Cached_bytes{job=\"\
+        node-exporter\"} +\n    node_memory_MemFree_bytes{job=\"node-exporter\"} +\n\
+        \    node_memory_Slab_bytes{job=\"node-exporter\"}\n  )\n)"
+      labels:
+        aggregate: '{{.Values.evaluationInterval}}'
+      record: cern::node_memory_MemAvailable_bytes:sum
