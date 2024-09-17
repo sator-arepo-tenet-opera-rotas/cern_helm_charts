@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "eosxd.fullname" . }}
+  labels:
+    app: {{ template "eosxd.name" . }}
+    chart: {{ template "eosxd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "eosxd.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "eosxd.name" . }}
+        chart: {{ template "eosxd.chart" . }}
+        release: {{ .Release.Name }}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      hostPID: true
+      hostIPC: true
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+{{- if .Values.resources }}
+          resources: {{- .Values.resources | toYaml | nindent 12 }}
+{{- end }}
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYS_ADMIN
+                - NET_ADMIN
+          volumeMounts:
+            - name: dev-fuse
+              mountPath: /dev/fuse
+            - name: eosxd-configs
+              mountPath: /etc/eos
+            - name: eos-home
+              mountPath: /eos
+              mountPropagation: Bidirectional
+            - name: var-cache
+              mountPath: /var/cache
+{{- if .Values.nodeSelector }}
+      nodeSelector: {{- .Values.nodeSelector | toYaml | nindent 8 }}
+{{- end }}
+{{- if .Values.tolerations }}
+      tolerations: {{- .Values.tolerations | toYaml | nindent 8 }}
+{{- end }}
+{{- if .Values.affinity }}
+      affinity: {{- .Values.affinity | toYaml | nindent 8 }}
+{{- end }}
+{{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
+{{- end }}
+      volumes:
+        - name: dev-fuse
+          hostPath:
+            path: /dev/fuse
+        - name: eosxd-configs
+          projected:
+            sources:
+              - configMap:
+                  name: eosxd-config
+              - secret:
+                  name: eosxd-keytab
+{{ if .Values.keytab }}
+                  items:
+                    - key: fuse.sss.keytab
+                      path: fuse.sss.keytab
+                      mode: 0400
+{{ end }}
+        - name: eos-home
+          hostPath:
+            path: /var/eos
+        - name: var-cache
+          hostPath:
+            path: /var/cache
+{{- if .Values.updateStrategy }}
+  updateStrategy:
+{{ .Values.updateStrategy | toYaml | indent 4 }}
+{{- end }}

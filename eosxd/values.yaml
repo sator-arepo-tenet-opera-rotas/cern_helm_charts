@@ -1,0 +1,72 @@
+image:
+  repository: registry.cern.ch/kubernetes/eosd
+  tag: 5.1.27-1.1
+  pullPolicy: IfNotPresent
+
+nodeSelector: {}
+tolerations:
+  # guaranteed schedluing on all nodes, no matter the taints
+  # needed for nodes like GPUs which set an explicit taint
+  - operator: "Exists"
+affinity: {}
+priorityClassName: "system-cluster-critical"
+resources: {}
+
+updateStrategy:
+  type: OnDelete
+
+mounts:
+  ams: {}
+  atlas: {}
+  cms: {}
+  experiment:
+    public: {}
+  lhcb: {}
+  media: {}
+  project:
+    project-i00: "a e j g v k q y"
+    project-i01: "l h b p s f w n o"
+    project-i02: "d c i r m t u x z"
+  theory:
+    public: {}
+  user:
+    home-i00: "d l n t z"
+    home-i01: "a g j k w"
+    home-i02: "h o r s y"
+    home-i03: "b e m v x"
+    home-i04: "c f i p q u"
+  workspace:
+    public: {}
+  web:
+    media: {}
+  opendata:
+    public: {}
+  hepdata:
+    public: {}
+
+#
+# To configure the mount points, it's possible to set global values
+# (applied on all) or per mount values. Example:
+#
+# config:
+#   global:
+#     options:
+#       hide-versions: 0
+#   home-i00:
+#     statisticfile: "stats"
+#     auth:
+#       krb5: 0
+# 
+config: {}
+
+
+#
+# EOS SSS keytab
+#
+# Default value for deployments at CERN with SSS enabled
+#
+# For other deployments, check the EOS MGM configuration
+# (check https://xrootd.slac.stanford.edu/doc/dev54/sec_config.htm#_Toc79102019)
+#
+# Set `keytab: ""` if not using SSS (e.g. Kerberos authentication)
+keytab: "0 u:eosnobody g:def-cg n:eosnobody N:6752069312392986625 c:1572088644 e:0 f:0 k:ea3d35d2dd64ad4794a2e2f7499fd3c45e0e8a590b0c4ff8a2049cbec244636c"

@@ -1,0 +1,11 @@
+#
+# EOS sss keytab
+#
+apiVersion: v1
+kind: Secret
+metadata:
+  name: eosxd-keytab
+data:
+{{ if .Values.keytab }}
+  fuse.sss.keytab: {{ .Values.keytab | b64enc }}
+{{ end }}
