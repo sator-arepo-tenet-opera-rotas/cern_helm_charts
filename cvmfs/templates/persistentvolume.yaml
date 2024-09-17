@@ -1,0 +1,50 @@
+{{ range $k, $v := .Values.volumes }}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: cvmfs-{{ $k }}
+# Local storage does not need a provisioner
+provisioner: kubernetes.io/no-provisioner
+# Give it out as-is
+reclaimPolicy: {{ $.Values.retainPolicy }}
+volumeBindingMode: {{ $.Values.volumeBindingMode }}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cvmfs-{{ $k }}
+spec:
+  capacity:
+    storage: {{ $.Values.storage }}
+  volumeMode: Filesystem
+  accessModes:
+  - ReadOnlyMany
+  persistentVolumeReclaimPolicy: {{ $.Values.retainPolicy }}
+  storageClassName: cvmfs-{{ $k }}
+  local:
+    path: {{ $.Values.rootPrefix }}/cvmfs-k8s/{{ (index $v "repo") }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: NotIn
+          values:
+          -  fake
+{{ range $.Values.volumeNamespaces }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cvmfs-{{ $k }}
+  namespace: {{ . }}
+spec:
+  accessModes:
+  - ReadOnlyMany
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: cvmfs-{{ $k }}
+{{ end }}
+{{ end }}

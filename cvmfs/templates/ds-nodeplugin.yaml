@@ -1,0 +1,86 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cvmfs-nodeplugin
+  namespace: {{ .Release.Namespace }}
+  labels: 
+    k8s-app: cvmfs-nodeplugin
+spec:
+  selector:
+    matchLabels:
+      k8s-app: cvmfs-nodeplugin
+  template:
+    metadata: 
+      labels:
+        k8s-app: cvmfs-nodeplugin
+    spec:
+      serviceAccount: cvmfs-nodeplugin
+      initContainers:
+      - name: create-mountpoint
+        image: busybox
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_ADMIN"]
+          allowPrivilegeEscalation: true
+        command: ['sh', '-c', "mkdir -p /cvmfs-root/cvmfs-k8s"]
+        resources:
+           limits:
+             memory: 0.5Gi
+             cpu: 1
+           requests:
+             memory: 0.2Gi
+             cpu: 0.01
+        volumeMounts:
+        - mountPath: /cvmfs-root
+          name:  cvmfs-root
+      containers:
+      - name: cvmfs
+        image: {{ .Values.image.name }}:{{ .Values.image.tag }}
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_ADMIN"]
+          allowPrivilegeEscalation: true
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/usr/local/sbin/unmount-and-terminate.sh"]
+        env:
+          {{ $vols := list nil }}
+          {{- range $k, $v := .Values.volumes }}
+          {{- $vols = append $vols (index $v "repo") }}
+          {{- end }}
+        - name: MOUNT_REPOS
+          value: "{{ join "," $vols }}"
+        - name: SQUID_URI
+          value: "DIRECT"
+        {{- with .Values.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        livenessProbe:
+          exec:
+            command:  # returns 0 if there are 5 cvmfs mounts
+              - /bin/sh
+              - -c
+              - "[ `df -h | grep cvmfs2 | wc -l` -eq 5 ]"
+          initialDelaySeconds: 300
+          periodSeconds: 10
+          failureThreshold: 3
+        volumeMounts:
+        - mountPath: /cvmfs
+          name:  cvmfs-root
+          subPath: cvmfs-k8s
+          mountPropagation: Bidirectional
+      priorityClassName: {{ $.Values.priorityClassName }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: cvmfs-root
+        persistentVolumeClaim:
+          claimName: cvmfs-root

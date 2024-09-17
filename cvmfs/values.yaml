@@ -1,0 +1,51 @@
+image:
+  name: gitlab-registry.cern.ch/cloud/atomic-system-containers/cvmfs-prp
+  tag: latest
+
+volumes:
+  atlas:
+    repo: atlas.cern.ch
+  atlas-condb:
+    repo: atlas-condb.cern.ch
+  atlas-nightlies:
+    repo: atlas-nightlies.cern.ch
+  grid:
+    repo: grid.cern.ch
+  sft:
+    repo: sft.cern.ch
+volumeNamespaces:
+  - gitlab-runner
+
+rootPrefix: "/var"
+#priorityClassName: system-node-critical
+retainPolicy: Retain
+resources:
+  limits:
+    memory: 4Gi
+    cpu: 1
+  requests:
+    memory: 0.5Gi
+    cpu: 0.01
+storage: 2Gi
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+volumeBindingMode: Immediate
+
+frontier:
+  enabled: false
+  image:
+    name: gitlab-registry.cern.ch/cloud/atomic-system-containers/frontier-squid
+    tag: latest
+  imagePullPolicy: Always
+  #priorityClassName: system-cluster-critical
+  resources:
+    limits:
+      memory: 4Gi
+      cpu: 1
+      ephemeral-storage: 20Gi
+    requests:
+      memory: 2Gi
+      cpu: 1
+      ephemeral-storage: 10Gi

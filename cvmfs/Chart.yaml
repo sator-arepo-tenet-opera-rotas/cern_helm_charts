@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cvmfs
+description: A Helm chart for setting up cvmfs with a frontier cache
+type: application
+version: 0.1.0
