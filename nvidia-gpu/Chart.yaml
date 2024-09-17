@@ -1,0 +1,4 @@
+apiVersion: v1
+name: nvidia-gpu
+description: A Helm chart to setup Nvidia GPUs on Kubernetes
+version: 0.4.3
