@@ -1,0 +1,6 @@
+apiVersion: v2
+name: chaosmesh-helm
+description: Chaos Mesh is a cloud-native Chaos Engineering platform that orchestrates chaos on Kubernetes environments.
+type: application
+version: 0.1.0
+appVersion: "1.16.0"

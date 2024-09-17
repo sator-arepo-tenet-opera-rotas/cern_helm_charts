@@ -1,0 +1,353 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: condor-configd
+  labels:
+    app: {{ template "condor-startd.name" . }}
+    chart: {{ template "condor-startd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  10_security.config: |+
+    QUEUE_SUPER_USER_MAY_IMPERSONATE = .*
+    
+    #########################################
+    # Start of security configuration testing
+    #########################################
+    
+    # HTCondor configuration: security
+    
+    use SECURITY : Strong
+    
+    # Condor processes run in the name of this uid.gid. The default is condor.condor
+    
+    # In case there's no explicit FQDN specified, HTCondor appends this domain to the hostname
+    DEFAULT_DOMAIN_NAME = {{ .Values.domain.name }}
+    
+    # Every node shares the same "UID namespace", HTCondor believes, that the same
+    # users live on each node
+    UID_DOMAIN = {{ .Values.domain.name }}
+    
+    # Every node shares the same "FS namespace", if the user don't transfer something,
+    # just uses it, HTCondor assumes it's already there
+    FILESYSTEM_DOMAIN = {{ .Values.domain.name }}
+    
+    # Central manager node
+    {{- range $index, $manager := .Values.managers }}
+    CENTRAL_MANAGER{{ add $index 1 }} = {{ $manager }}
+    {{- end }}
+    
+    COLLECTOR_TEST = {{ join "," .Values.collectors }}
+    COLLECTOR_HOST = {{ join "," .Values.collectors }}
+    
+    UPDATE_COLLECTOR_WITH_TCP = True
+    
+    CONDOR_HOST =  {{- range $index, $manager := .Values.managers }}$(CENTRAL_MANAGER{{ add $index 1 }}), {{- end }}
+    
+    # These should be unnecessary, unless if we have an error below.
+    DENY_WRITE         = anonymous@*, *@unmapped
+    DENY_NEGOTIATOR    = anonymous@*, *@unmapped
+    DENY_ADMINISTRATOR = anonymous@*, *@unmapped
+    DENY_DAEMON        = anonymous@*, *@unmapped
+    DENY_ADVERTISE_MASTER = anonymous@*, *@unmapped
+    DENY_ADVERTISE_SCHEDD = anonymous@*, *@unmapped
+    DENY_ADVERTISE_STARTD = anonymous@*, *@unmapped
+    
+    # Machines & users
+    CERTIFICATE_MAPFILE = /etc/condor/certificate_mapfile
+    SEC_DEFAULT_AUTHENTICATION_METHODS= FS, GSI, KERBEROS
+    SEC_CLIENT_AUTHENTICATION_METHODS= FS, GSI, KERBEROS
+    GSI_DAEMON_DIRECTORY = {{ .Values.gsi.directory }}
+    GSI_DAEMON_CERT = $(GSI_DAEMON_DIRECTORY)/hostcert.pem
+    GSI_DAEMON_KEY  = $(GSI_DAEMON_DIRECTORY)/hostkey.pem
+    GSI_DAEMON_TRUSTED_CA_DIR = $(GSI_DAEMON_DIRECTORY)/certificates 
+    
+    CMS = {{ range $manager := .Values.managers }}central-manager@$(UID_DOMAIN)/{{ $manager }},{{ end }}
+    ADMIN_HOSTS = $(CMS), batch-monkey@$(UID_DOMAIN)/*.$(DEFAULT_DOMAIN_NAME)
+    CES = {{ range $ce := .Values.compute_elements }}computing-element@$(UID_DOMAIN)/{{ $ce }},{{ end }}
+    MATCH_SESSION = {{ range $sched := .Values.scheds }}submit-side@matchsession/{{ $sched }},{{- end }}{{- range $compute := .Values.compute_elements }}submit-side@matchsession/{{ $compute }},{{- end }}
+    SCHEDDS = schedd@$(UID_DOMAIN)/*.$(DEFAULT_DOMAIN_NAME)
+    WNS = worker-node@$(UID_DOMAIN)/*.$(DEFAULT_DOMAIN_NAME), xcloud-worker@$(UID_DOMAIN)/*
+    BDIIS = bdii@$(UID_DOMAIN)/*.$(DEFAULT_DOMAIN_NAME)
+    THIS_HOST = worker-node@$(UID_DOMAIN)/$(FULL_HOSTNAME) central-manager@$(UID_DOMAIN)/$(FULL_HOSTNAME) computing-element@$(UID_DOMAIN)/$(FULL_HOSTNAME), condor@$(UID_DOMAIN)/$(FULL_HOSTNAME)
+    CONDOR_HOSTS = $(CMS), $(CES), $(SCHEDDS), $(WNS), condorstats.cern.ch, $(FULL_HOSTNAME), $(THIS_HOST), $(BDIIS)
+    
+    USERS = {{- range $sched := .Values.scheds }}*@$(UID_DOMAIN)/{{ $sched }}, {{- end }}{{- range $compute := .Values.compute_elements }}*@$(UID_DOMAIN)/{{ $compute }}, {{- end }}*@fsauth/$(FULL_HOSTNAME)
+    
+    # Clear out any old-style HOSTALLOW settings:
+    HOSTALLOW_READ =
+    HOSTALLOW_WRITE =
+    HOSTALLOW_DAEMON =
+    HOSTALLOW_NEGOTIATOR =
+    HOSTALLOW_ADMINISTRATOR =
+    HOSTALLOW_OWNER =
+    
+    ENABLE_SSH_TO_JOB = True
+    SSH_TO_JOB_SSHD_CONFIG_TEMPLATE = /etc/condor/condor_ssh_to_job_sshd_config_template
+    
+    # Administrator is the root user on the CMs
+    ALLOW_ADMINISTRATOR = $(CMS), $(THIS_HOST)
+    
+    # condor_userprio can be invoked by users and admins
+    NEGOTIATOR.ALLOW_READ = $(USERS), $(CMS)
+    
+    # condor_status can be invoked by users and daemons
+    COLLECTOR.ALLOW_READ = $(USERS), $(CONDOR_HOSTS), *
+    
+    # users and daemons can query the schedd
+    SCHEDD.ALLOW_READ = $(USERS), $(CONDOR_HOSTS)
+    
+    # condor_preen asks startds only locally
+    STARTD.ALLOW_READ = $(CMS), $(CES), condor@fsauth/$(FULL_HOSTNAME), root@fsauth/$(FULL_HOSTNAME), flume@fsauth/$(FULL_HOSTNAME), cgs@fsauth/$(FULL_HOSTNAME)
+    
+    # condor_reconfig can be issued by root on the CM
+    ALLOW_WRITE = $(THIS_HOST), $(CMS), root@fsauth/$(FULL_HOSTNAME), condor@fsauth, submit-side@matchsession/*.$(DEFAULT_DOMAIN_NAME)
+    
+    # CE machine users can submit jobs, condor_reschedule can be invoked on the CM
+    SCHEDD.ALLOW_WRITE = $(THIS_HOST), $(USERS)
+    
+    # Reduce privileges for each daemon type for advertising.
+    COLLECTOR.ALLOW_ADVERTISE_MASTER = $(THIS_HOST), $(CONDOR_HOSTS), condor@fsauth/$(FULL_HOSTNAME)
+    COLLECTOR.ALLOW_ADVERTISE_SCHEDD = $(CES), $(SCHEDDS)
+    COLLECTOR.ALLOW_ADVERTISE_STARTD = $(CONDOR_HOSTS)
+    
+    STARTD.ALLOW_NEGOTIATOR = $(CMS)
+    SCHEDD.ALLOW_NEGOTIATOR = $(CMS)
+    STARTD.ALLOW_WRITE = $(CES), $(ALLOW_WRITE), $(STARTD.ALLOW_WRITE), $(MATCH_SESSION), submit-side@matchsession/*.$(DEFAULT_DOMAIN_NAME)
+    SHADOW.ALLOW_WRITE = $(CES), $(SCHEDDS), $(WNS), execute-side@matchsession/*.$(DEFAULT_DOMAIN_NAME)
+    ALLOW_DAEMON = $(CES), $(SCHEDDS), $(CMS), $(WNS), $(THIS_HOST), condor@fsauth/$(FULL_HOSTNAME), $(MATCH_SESSION)
+    ALLOW_ADMINISTRATOR = $(ADMIN_HOSTS), $(THIS_HOST), condor@fsauth/$(FULL_HOSTNAME)
+    
+    SEC_ENABLE_MATCH_PASSWORD_AUTHENTICATION=true
+    
+    CONDOR_IDS =
+    
+    SHADOW_DEBUG=D_FULLDEBUG D_MACHINE
+    
+  14_network.config: |+
+    # http://research.cs.wisc.edu/htcondor/manual/v8.3/3_7Networking_includes.html#SECTION00472000000000000000
+    USE_SHARED_PORT = {{ .Values.network.shared_port }}
+
+  20_workernode.config: |+
+    MachineOwner = condor
+    StartJobs = True
+    HEPSPEC = 80
+    DATACENTRE = meyrin
+    
+    PUBLISH_OBITUARIES = False
+    
+    ## NUM_CPUS based on heira (if defined), otherwise on facter
+    NUM_CPUS = 8
+    
+    HostGroup = "bi/condor/gridworker/share"
+    
+    STARTD_ATTRS = $(STARTD_ATTRS) MachineOwner, StartJobs, HostGroup 
+    # Need the HEPSPEC value passed through to the node.
+    MATCH_EXPRS = $(MATCH_EXPRS), MY.HEPSPEC
+    MATCH_ATTRS = $(MATCH_ATTRS), MY.HEPSPEC
+    ## Permanent way of stopping jobs from starting
+    STARTD.SETTABLE_ATTRS_ADMINISTRATOR = StartJobs, OnlyMulticore
+    ENABLE_PERSISTENT_CONFIG = TRUE
+    PERSISTENT_CONFIG_DIR = /etc/condor/persistent
+    
+    ## Disk usage limits
+    
+    ## Healthcheck
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) wn_healthcheck
+    #FIXME: STARTD_CRON_wn_healthcheck_EXECUTABLE = /usr/local/bin/healhcheck_wn_condor
+    #FIXME: STARTD_CRON_wn_healthcheck_PERIOD = 10m
+    #FIXME: STARTD_CRON_wn_healthcheck_MODE = periodic
+    #FIXME: STARTD_CRON_wn_healthcheck_RECONFIG = false
+    #FIXME: STARTD_CRON_wn_healthcheck_KILL = true
+    
+    ## When is this node willing to run jobs?
+    START = (NODE_IS_HEALTHY =?= True) && (StartJobs =?= True)  && (SendCredential =!= True) && ((InStagedDrain =?= True && (time() + MaxRuntime < ShutdownTime)) || InStagedDrain =?= False) 
+    SUSPEND = FALSE
+    CONTINUE = TRUE
+    WANT_SUSPEND = $(SUSPEND)
+    KILL = FALSE
+    
+    ## When to nicely stop a job?
+    ## (as opposed to killing it instantaneously)
+    PREEMPT = FALSE
+    ## Overcommit memory by 50% and quantize the detected memory
+    MEMORY = 1.5 * quantize( $(DETECTED_MEMORY), 1000 )
+    
+    ## Partitionable slots
+    NUM_SLOTS = 1
+    SLOT_TYPE_1               = cpus=100%,mem=100%,auto
+    NUM_SLOTS_TYPE_1          = 1
+    SLOT_TYPE_1_PARTITIONABLE = TRUE
+    
+    ## Without this lots of memory (& hence job slots) will be wasted
+    MODIFY_REQUEST_EXPR_REQUESTMEMORY = quantize(RequestMemory,100)
+    ## Disable preemption by machine RANK by ranking all jobs equally
+    RANK = 0
+    
+    ## Niceness of user jobs
+    JOB_RENICE_INCREMENT = 10
+    
+    ## Extend CLAIM_WORKLIFE to 4 hours so that we don't constantly have to re-negotiate for the same pilot/payload types.
+    CLAIM_WORKLIFE = 14400
+    
+    ## Allow jobs time to finish if they need to be preempted (should be same as max walltime allowed)
+    MAXJOBRETIREMENTTIME = $(HOUR) * 24 * 3
+    
+    ## Update collector at random intervals
+    UPDATE_INTERVAL = $RANDOM_INTEGER(680, 750, 1)
+    MASTER_UPDATE_INTERVAL = $RANDOM_INTEGER(680, 750, 1)
+    
+    ## Location of scratch directories
+    EXECUTE = /pool/condor
+    USER_JOB_WRAPPER = /usr/local/condor/job_wrapper
+    
+    ## Make sure jobs have independent PID namespaces
+    ## ATLAS Pilot bug fixed, re-enabling
+    USE_PID_NAMESPACES = TRUE
+    
+    ## Mount /tmp and /var/tmp under the job
+    MOUNT_UNDER_SCRATCH = ifThenElse(isUndefined(Owner), "/tmp, /var/tmp", strcat("/tmp, /var/tmp, ", "/pool/grid/", Owner))
+    
+    ## If the binaries are updated, let any running jobs finish before restarting
+    MASTER_NEW_BINARY_RESTART=PEACEFUL
+    
+    ## Logs
+    MAX_MASTER_LOG = 104857600
+    MAX_NUM_MASTER_LOG = 10
+    
+    MAX_STARTD_LOG = 104857600
+    MAX_NUM_STARTD_LOG = 10
+    
+    # HTCondor C-Groups
+    BASE_CGROUP = htcondor
+    CGROUP_MEMORY_LIMIT_POLICY = soft
+    
+    # This knob must be set in the negotiator's configuration. It prevents
+    # slots from going into matched state, which works fine and is necessary
+    # to make the $(StateTimer) trigger only when we leave draining state.
+    NEGOTIATOR_INFORM_STARTD = false
+    
+    # Set OnlyMulticoreInterval to the number of seconds the startd should
+    # only allow multi-core jobs. Default to about 2 negotiation cycles.
+    OnlyMulticoreInterval = 2*$(NEGOTIATOR_INTERVAL:300)
+    # If this slot has more than 4 cores free, then insist on jobs that
+    # request at least 4 cores or more.
+    IsMulticore = RequestCpus >= IfThenElse(Cpus<4,1,4)
+    # We only want this policy to apply to partitionable slots (pslots)
+    IsntUnmatchedPSlot = PartitionableSlot=!=true || State=="Matched"
+    
+    OnlyMulticoreJobsAfterDrain = $(IsntUnmatchedPSlot) || $(IsMulticore) || $(StateTimer) > $(OnlyMulticoreInterval)
+    
+    START = $(START) && ( $(OnlyMulticoreJobsAfterDrain) )
+    
+    ## Debugging
+    #STARTD_DEBUG = D_COMMAND D_FULLDEBUG
+    
+    # Enable STARTD History records and rotate daily.
+    STARTD_HISTORY = $(LOG)/startd_history
+    ENABLE_HISTORY_ROTATION = True
+    ROTATE_HISTORY_DAILY = True
+    MAX_HISTORY_ROTATIONS = 14
+    
+    ##  This macro determines what daemons the condor_master will start and keep its watchful eyes on.
+    ##  The list is a comma or space separated list of subsystem names
+    DAEMON_LIST = MASTER, SHARED_PORT, STARTD
+
+  24_workernode_crons.config: |+
+    #FIXME: #
+    #FIXME: # Startd Cron Stuff
+    #FIXME: #
+    #FIXME: # auxiliary variable to use in identifying locations of files
+    #FIXME: MODULES = $(ROOT)/modules
+    #FIXME: 
+    #FIXME: STARTD_CRON_CONFIG_VAL = $(RELEASE_DIR)/bin/condor_config_val
+    #FIXME: STARTD_CRON_MAX_JOB_LOAD = 0.2
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST)
+    #FIXME: # credmonperiodic job
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) credmonperiodic
+    #FIXME: STARTD_CRON_credmonperiodic_MODE = Periodic
+    #FIXME: STARTD_CRON_credmonperiodic_PERIOD = 1h
+    #FIXME: STARTD_CRON_credmonperiodic_RECONFIG_RERUN = True
+    #FIXME: STARTD_CRON_credmonperiodic_PREFIX = 
+    #FIXME: STARTD_CRON_credmonperiodic_EXECUTABLE = /usr/libexec/condor/scripts/credmonversion.sh
+    #FIXME: STARTD_CRON_credmonperiodic_KILL = True
+    #FIXME: STARTD_CRON_credmonperiodic_JOB_LOAD = 0.01
+    #FIXME: # credmonver job
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) credmonver
+    #FIXME:  
+    #FIXME: STARTD_CRON_credmonver_MODE = OneShot
+    #FIXME: STARTD_CRON_credmonver_RECONFIG_RERUN = True
+    #FIXME: STARTD_CRON_credmonver_PREFIX = 
+    #FIXME: STARTD_CRON_credmonver_EXECUTABLE = /usr/libexec/condor/scripts/credmonversion.sh
+    #FIXME: STARTD_CRON_credmonver_KILL = True
+    #FIXME: STARTD_CRON_credmonver_JOB_LOAD = 0.01
+    #FIXME: # datacentre job
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) datacentre
+    #FIXME:  
+    #FIXME: STARTD_CRON_datacentre_MODE = OneShot
+    #FIXME: STARTD_CRON_datacentre_RECONFIG_RERUN = True
+    #FIXME: STARTD_CRON_datacentre_PREFIX = 
+    #FIXME: STARTD_CRON_datacentre_EXECUTABLE = /usr/libexec/condor/scripts/datacentreinject.sh
+    #FIXME: STARTD_CRON_datacentre_KILL = True
+    #FIXME: STARTD_CRON_datacentre_JOB_LOAD = 0.01
+    #FIXME: # hepspec job
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) hepspec
+    #FIXME:  
+    #FIXME: STARTD_CRON_hepspec_MODE = OneShot
+    #FIXME: STARTD_CRON_hepspec_RECONFIG_RERUN = True
+    #FIXME: STARTD_CRON_hepspec_PREFIX = 
+    #FIXME: STARTD_CRON_hepspec_EXECUTABLE = /usr/libexec/condor/scripts/hepspecinject.sh
+    #FIXME: STARTD_CRON_hepspec_KILL = True
+    #FIXME: STARTD_CRON_hepspec_JOB_LOAD = 0.01
+    #FIXME: # isvirtual job
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) isvirtual
+    #FIXME:  
+    #FIXME: STARTD_CRON_isvirtual_MODE = OneShot
+    #FIXME: STARTD_CRON_isvirtual_RECONFIG_RERUN = True
+    #FIXME: STARTD_CRON_isvirtual_PREFIX = 
+    #FIXME: STARTD_CRON_isvirtual_EXECUTABLE = /usr/libexec/condor/scripts/isvirtual.sh
+    #FIXME: STARTD_CRON_isvirtual_KILL = True
+    #FIXME: STARTD_CRON_isvirtual_JOB_LOAD = 0.01
+    #FIXME: # nodemountsafs job
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) nodemountsafs
+    #FIXME: STARTD_CRON_nodemountsafs_MODE = Periodic
+    #FIXME: STARTD_CRON_nodemountsafs_PERIOD = 10m
+    #FIXME: STARTD_CRON_nodemountsafs_RECONFIG_RERUN = False
+    #FIXME: STARTD_CRON_nodemountsafs_PREFIX = 
+    #FIXME: STARTD_CRON_nodemountsafs_EXECUTABLE = /usr/libexec/condor/scripts/nodemountsafs.sh
+    #FIXME: STARTD_CRON_nodemountsafs_KILL = True
+    #FIXME: STARTD_CRON_nodemountsafs_JOB_LOAD = 0.01
+    #FIXME: # puppetenv job
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) puppetenv
+    #FIXME:  
+    #FIXME: STARTD_CRON_puppetenv_MODE = OneShot
+    #FIXME: STARTD_CRON_puppetenv_RECONFIG_RERUN = True
+    #FIXME: STARTD_CRON_puppetenv_PREFIX = 
+    #FIXME: STARTD_CRON_puppetenv_EXECUTABLE = /usr/libexec/condor/scripts/puppetenvinject.sh
+    #FIXME: STARTD_CRON_puppetenv_KILL = True
+    #FIXME: STARTD_CRON_puppetenv_JOB_LOAD = 0.01
+    #FIXME: # stageddrain job
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) stageddrain
+    #FIXME:  
+    #FIXME: STARTD_CRON_stageddrain_MODE = OneShot
+    #FIXME: STARTD_CRON_stageddrain_RECONFIG_RERUN = True
+    #FIXME: STARTD_CRON_stageddrain_PREFIX = 
+    #FIXME: STARTD_CRON_stageddrain_EXECUTABLE = /usr/libexec/condor/scripts/stageddrain.sh
+    #FIXME: STARTD_CRON_stageddrain_KILL = True
+    #FIXME: STARTD_CRON_stageddrain_JOB_LOAD = 0.01
+    #FIXME: # stageddrainperiodic job
+    #FIXME: STARTD_CRON_JOBLIST = $(STARTD_CRON_JOBLIST) stageddrainperiodic
+    #FIXME: STARTD_CRON_stageddrainperiodic_MODE = Periodic
+    #FIXME: STARTD_CRON_stageddrainperiodic_PERIOD = 1h
+    #FIXME: STARTD_CRON_stageddrainperiodic_RECONFIG_RERUN = True
+    #FIXME: STARTD_CRON_stageddrainperiodic_PREFIX = 
+    #FIXME: STARTD_CRON_stageddrainperiodic_EXECUTABLE = /usr/libexec/condor/scripts/stageddrain.sh
+    #FIXME: STARTD_CRON_stageddrainperiodic_KILL = True
+    #FIXME: STARTD_CRON_stageddrainperiodic_JOB_LOAD = 0.01
+
+  31_krbrenewal.config: |+
+    SEC_CREDENTIAL_MONITOR = /usr/bin/condor_credmon
+    SEC_CREDENTIAL_MONITOR_LOG = /etc/batch_credds/credmon.log
+    SEC_CREDENTIAL_DIRECTORY = /etc/batch_credds
+    DAEMON_LIST = $(DAEMON_LIST), SEC_CREDENTIAL_MONITOR
+

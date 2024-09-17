@@ -1,0 +1,40 @@
+{{- if .Values.daemonset.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemonset
+  namespace: {{ $.Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      job: nginx
+  template:
+    metadata:
+      labels:
+        job: nginx
+    spec:
+      hostPID: true
+      containers:
+      - image: centos:7
+        name: installer
+        args: ["/bin/sh","/tmp/install-script/install.sh"]
+        securityContext:
+          privileged: true
+          capabilities:
+            add: ["SYS_ADMIN", "NET_ADMIN"]
+          seLinuxOptions:
+            type: "spc_t"
+          allowPrivilegeEscalation: true
+        volumeMounts:
+        - name: install-script
+          mountPath: /tmp/install-script
+        - name: lib-modules
+          mountPath: /lib/modules
+      volumes:
+      - name: install-script
+        configMap:
+          name: install-config
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+{{- end }}

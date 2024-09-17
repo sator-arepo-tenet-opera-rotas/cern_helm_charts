@@ -1,0 +1,232 @@
+# Default values for condor-startd.
+# This is a YAML-formatted file.
+image:
+  repository: gitlab-registry.cern.ch/cloud/condor/condor-startd
+  tag: latest
+  pullPolicy: IfNotPresent
+
+#debug: D_SECURITY:2 D_COMMAND
+debug: D_ALL:2
+
+admin:
+  email: condor.admin@cern.ch
+domain:
+  name: cern.ch
+  email: cern.ch
+
+network:
+  shared_port: false
+
+managers:
+  - tweetybird03.cern.ch
+  - tweetybird04.cern.ch
+
+collectors:
+  - tweetybird03.cern.ch:10013
+  - tweetybird04.cern.ch:10013
+
+scheds:
+  - bigbird01.cern.ch
+  - bigbird02.cern.ch
+  - bigbird03.cern.ch
+  - bigbird04.cern.ch
+  - bigbird05.cern.ch
+  - bigbird06.cern.ch
+  - bigbird07.cern.ch
+  - bigbird08.cern.ch
+  - bigbird09.cern.ch
+  - bigbird10.cern.ch
+
+compute_elements:
+  - ce*.$(DEFAULT_DOMAIN_NAME)
+  - condorce*.$(DEFAULT_DOMAIN_NAME)
+
+gsi:
+  certificates:
+    authz:
+      - KERBEROS ^([^@/]*)@(.*)$ \1@\2
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=b7(.*).*" worker-node@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=b6729ee2c7\.cern\.ch.*" worker-node@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=b68ff11c1b\.cern\.ch.*" worker-node@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=b605daf9a2\.cern\.ch.*" worker-node@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce503\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce504\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce505\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce506\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce507\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce508\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce509\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce510\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce511\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce512\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce513\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce514\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce515\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ce516\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=condorce01\.cern\.ch.*" computing-element@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird01\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird02\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird03\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird04\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird05\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird06\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird07\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird08\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird09\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=bigbird10\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=ipv6\-test\-schedd\.cern\.ch.*" schedd@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=tweetybird03\.cern\.ch.*" central-manager@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=tweetybird04\.cern\.ch.*" central-manager@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=condorstats\.cern\.ch.*" condor-stats@cern.ch
+      - GSI "/DC=ch/DC=cern/OU=computers/CN=batchman\.cern\.ch.*" batch-monkey@cern.ch
+        #      - GSI "/DC=ch/DC=cern/OU=Organic Units/OU=Users/CN=?([A-Za-z0-9.\-]*)/CN=(\d*)/CN=?([A-Za-z0-9.: \-]*)" \1@cern.ch
+      - GSI (.*) GSS_ASSIST_GRIDMAP
+      - FS (.*) \1@fsauth
+  conf:
+    MIN_TLS_PROTOCOL: TLS1_VERSION
+    MAX_TLS_PROTOCOL: 0
+    NAME_COMPATIBILITY: STRICT_RFC2818
+    CIPHERS: HIGH
+    SERVER_CIPHER_ORDER: true
+    BACKWARD_COMPATIBLE_MIX: true
+    ACCEPT_BACKWARD_COMPATIBLE_MIC: true
+    VHOST_CRED_OWNER: root
+  directory: /etc/grid-security
+  gridmap:
+    - '"/alice/Role=production" aliceprd'
+    - '"/alice/Role=pilot" aliplt10'
+    - '"/alice/Role=lcgadmin" .alisgm'
+    - '"/alice/Role=*" .alice'
+    - '"/atlas/Role=production" .atlprd'
+    - '"/atlas/Role=pilot" atlplt10'
+    - '"/atlas/Role=lcgadmin" atlassgm'
+    - '"/atlas/*/Role=*" .atlas'
+    - '"/cms/Role=t1production" cmsprd'
+    - '"/cms/Role=production" cmsprd'
+    - '"/cms/Role=pilot" .cmsplt'
+    - '"/cms/Role=lcgadmin" cmssgm'
+    - '"/cms/Role=*" .cms'
+    - '"/cms/dbs/Role=*" .cms'
+    - '"/cms/dcms/Role=*" .cms'
+    - '"/cms/uscms/Role=*" .cms'
+    - '"/cms/twcms/Role=*" .cms'
+    - '"/cms/ptcms/Role=*" .cms'
+    - '"/cms/local/Role=*" .cms'
+    - '"/cms/itcms/Role=*" .cms'
+    - '"/cms/escms/Role=*" .cms'
+    - '"/cms/chcms/Role=*" .cms'
+    - '"/cms/becms/Role=*" .cms'
+    - '"/cms/production/Role=*" .cms'
+    - '"/cms/integration/Role=*" .cms'
+    - '"/dteam/Role=production" dteamprd'
+    - '"/dteam/Role=lcgadmin" .dtmsgm'
+    - '"/dteam/*/Role=*" .dteam'
+    - '"/envirogrids.vo.eu-egee.org/*/Role=*" .env'
+    - '"/geant4/Role=lcgadmin" geantsgm'
+    - '"/geant4/*/Role=*" .geant'
+    - '"/ilc/Role=production" ilcprd'
+    - '"/ilc/Role=pilot" .ilcplt'
+    - '"/ilc/Role=lcgadmin" ilcsgm'
+    - '"/ilc/*/Role=*" .ilc'
+    - '"/lhcb/Role=production" lhcbprd'
+    - '"/lhcb/Role=pilot" lhbplt01'
+    - '"/lhcb/Role=lcgadmin" lhcbsgm'
+    - '"/lhcb/*/Role=*" .lhcb'
+    - '"/na48/Role=lcgadmin" .na48sg'
+    - '"/na48/*/Role=*" .na48u'
+    - '"/na62.vo.gridpp.ac.uk/Role=*" .na62e'
+    - '"/ops/Role=pilot" ops050'
+    - '"/ops/Role=lcgadmin" opssgm'
+    - '"/ops/*/Role=*" .ops'
+    - '"/unosat/*/Role=*" .unosat'
+    - '"/vo.aleph.cern.ch/Role=production" aleprd'
+    - '"/vo.aleph.cern.ch/Role=lcgadmin" alesgm'
+    - '"/vo.aleph.cern.ch/*/Role=*" .ale'
+    - '"/vo.compass.cern.ch/Role=production" cmpprd'
+    - '"/vo.compass.cern.ch/*/Role=*" .cmp'
+    - '"/vo.delphi.cern.ch/Role=production" delprd'
+    - '"/vo.delphi.cern.ch/Role=lcgadmin" delsgm'
+    - '"/vo.delphi.cern.ch/*/Role=*" .del'
+    - '"/vo.gear.cern.ch/Role=lcgadmin" gearsgm'
+    - '"/vo.gear.cern.ch/*/Role=*" .gear'
+    - '"/vo.l3.cern.ch/Role=production" l3prd'
+    - '"/vo.l3.cern.ch/Role=lcgadmin" l3sgm'
+    - '"/vo.l3.cern.ch/*/Role=*" .l3u'
+    - '"/vo.opal.cern.ch/Role=production" opalprd'
+    - '"/vo.opal.cern.ch/Role=lcgadmin" opalsgm'
+    - '"/vo.opal.cern.ch/*/Role=*" .opal'
+    - '"/vo.sixt.cern.ch/Role=lcgadmin" sixtsgm'
+    - '"/vo.sixt.cern.ch/*/Role=*" .sixt'
+  groupmap:
+    - '"/alice/Role=production" z2'
+    - '"/alice/Role=pilot" z2'
+    - '"/alice/Role=lcgadmin" z2'
+    - '"/alice/Role=*" z2'
+    - '"/atlas/Role=production" zp'
+    - '"/atlas/Role=pilot" zp'
+    - '"/atlas/Role=lcgadmin" zp'
+    - '"/atlas/*/Role=*" zp'
+    - '"/cms/Role=t1production" zh'
+    - '"/cms/Role=production" zh'
+    - '"/cms/Role=pilot" zh'
+    - '"/cms/Role=lcgadmin" zh'
+    - '"/cms/Role=*" zh'
+    - '"/cms/dbs/Role=*" zh'
+    - '"/cms/dcms/Role=*" zh'
+    - '"/cms/uscms/Role=*" zh'
+    - '"/cms/twcms/Role=*" zh'
+    - '"/cms/ptcms/Role=*" zh'
+    - '"/cms/local/Role=*" zh'
+    - '"/cms/itcms/Role=*" zh'
+    - '"/cms/escms/Role=*" zh'
+    - '"/cms/chcms/Role=*" zh'
+    - '"/cms/becms/Role=*" zh'
+    - '"/cms/production/Role=*" zh'
+    - '"/cms/integration/Role=*" zh'
+    - '"/dteam/Role=production" cg'
+    - '"/dteam/Role=lcgadmin" cg'
+    - '"/dteam/*/Role=*" cg'
+    - '"/envirogrids.vo.eu-egee.org/*/Role=*" env-grid'
+    - '"/geant4/Role=lcgadmin" g4'
+    - '"/geant4/*/Role=*" g4'
+    - '"/ilc/Role=production" zf'
+    - '"/ilc/Role=pilot" zf'
+    - '"/ilc/Role=lcgadmin" zf'
+    - '"/ilc/*/Role=*" zf'
+    - '"/lhcb/Role=production" z5'
+    - '"/lhcb/Role=pilot" z5'
+    - '"/lhcb/Role=lcgadmin" z5'
+    - '"/lhcb/*/Role=*" z5'
+    - '"/na48/Role=lcgadmin" vl'
+    - '"/na48/*/Role=*" vl'
+    - '"/na62.vo.gridpp.ac.uk/Role=*" vl'
+    - '"/ops/Role=pilot" cg'
+    - '"/ops/Role=lcgadmin" cg'
+    - '"/ops/*/Role=*" cg'
+    - '"/unosat/*/Role=*" un'
+    - '"/vo.aleph.cern.ch/Role=production" xu'
+    - '"/vo.aleph.cern.ch/Role=lcgadmin" xu'
+    - '"/vo.aleph.cern.ch/*/Role=*" xu'
+    - '"/vo.compass.cern.ch/Role=production" vy'
+    - '"/vo.compass.cern.ch/*/Role=*" vy'
+    - '"/vo.delphi.cern.ch/Role=production" xx'
+    - '"/vo.delphi.cern.ch/Role=lcgadmin" xx'
+    - '"/vo.delphi.cern.ch/*/Role=*" xx'
+    - '"/vo.gear.cern.ch/Role=lcgadmin" ge'
+    - '"/vo.gear.cern.ch/*/Role=*" ge'
+    - '"/vo.l3.cern.ch/Role=production" xv'
+    - '"/vo.l3.cern.ch/Role=lcgadmin" xv'
+    - '"/vo.l3.cern.ch/*/Role=*" xv'
+    - '"/vo.opal.cern.ch/Role=production" ws'
+    - '"/vo.opal.cern.ch/Role=lcgadmin" ws'
+    - '"/vo.opal.cern.ch/*/Role=*" ws'
+    - '"/vo.sixt.cern.ch/Role=lcgadmin" si'
+    - '"/vo.sixt.cern.ch/*/Role=*" si'
+  certificate: |-
+    -----BEGIN CERTIFICATE-----
+    CERT PEM DATA (keep 4 char indentation)
+    -----END CERTIFICATE-----
+  key: |-
+    -----BEGIN PRIVATE KEY-----
+    KEY PEM DATA (keep 4 char indentation)
+    -----END PRIVATE KEY-----

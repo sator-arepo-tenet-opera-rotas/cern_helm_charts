@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cern-base-authz
+  namespace: kube-system
+  labels:
+    app: cern-base-authz
+    chart: cern-base
+    release: cern-base
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: cern-base-authz
+  template:
+    metadata:
+      labels:
+        app: cern-base-authz
+        chart: cern-base
+        release: cern-base
+    spec:
+      securityContext:
+        seLinuxOptions:
+          type: "spc_t"
+      hostNetwork: true
+      containers:
+        - name: dummy
+          image: "{{ .Values.dummy.image.repository }}:{{ .Values.dummy.image.tag }}"
+          imagePullPolicy: {{ .Values.keytab.image.pullPolicy }}
+          command: ['sh', '-c', 'echo Sleeping forever, all done here && while true ; do sleep 1h; done']
+      initContainers:
+        - name: keytab
+          image: "{{ .Values.keytab.image.repository }}:{{ .Values.keytab.image.tag }}"
+          imagePullPolicy: {{ .Values.keytab.image.pullPolicy }}
+          env:
+            - name: CERNKEYTAB_NOSLEEP
+              value: "1"
+          volumeMounts:
+            - name: etc-host
+              mountPath: /etc-host
+        - name: hostcert
+          image: "{{ .Values.hostcert.image.repository }}:{{ .Values.hostcert.image.tag }}"
+          imagePullPolicy: {{ .Values.hostcert.image.pullPolicy }}
+          env:
+            - name: CERNHOSTCERT_NOSLEEP
+              value: "1"
+          volumeMounts:
+            - name: etc-host
+              mountPath: /etc-host
+      volumes:
+        - name: etc-host
+          hostPath:
+            path: /etc
+            type: Directory

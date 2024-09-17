@@ -1,0 +1,27 @@
+{{- if .Values.configmap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: install-config
+  namespace: {{ $.Release.Namespace }}
+data:
+  install.sh: | 
+    #!/bin/sh
+    
+    set -x
+
+    #echo "Installing the NET_SCH_NETEM module"
+     
+    mkdir /tmp/kernel-modules
+    cd /tmp/kernel-modules
+
+    curl -L -O https://kojipkgs.fedoraproject.org//packages/kernel/5.12.7/300.fc34/x86_64/kernel-modules-extra-5.12.7-300.fc34.x86_64.rpm 
+    ls -l
+
+    rpm2cpio kernel-modules-extra-5.12.7-300.fc34.x86_64.rpm | cpio -idmv
+    ls -l ./lib/modules/5.12.7-300.fc34.x86_64/kernel/net/sched/sch_netem.ko.xz
+    insmod ./lib/modules/5.12.7-300.fc34.x86_64/kernel/net/sched/sch_netem.ko.xz
+    lsmod | grep netem
+
+    sleep 99999999999999
+{{- end }}

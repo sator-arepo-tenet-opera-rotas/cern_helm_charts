@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: condor-cert-map
+  labels:
+    app: {{ template "condor-startd.name" . }}
+    chart: {{ template "condor-startd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  certificate_mapfile: |+
+    {{- range $value := .Values.gsi.certificates.authz }}
+      {{ $value }}
+    {{- end }}
