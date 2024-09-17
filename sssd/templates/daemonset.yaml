@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "sssd.fullname" . }}
+  labels:
+    app: {{ template "sssd.name" . }}
+    chart: {{ template "sssd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "sssd.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "sssd.name" . }}
+        chart: {{ template "sssd.chart" . }}
+        release: {{ .Release.Name }}
+    spec:
+      hostNetwork: true
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/usr/sbin/sssd -i"]
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: sssd-config
+              mountPath: /etc/sssd/sssd.conf
+              subPath: sssd.conf
+              mode: 600
+      volumes:
+        - name: sssd-config
+          configMap: 
+            name: sssd-config

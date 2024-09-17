@@ -1,0 +1,56 @@
+# Default values for sssd.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: fedora/sssd
+  tag: latest
+  pullPolicy: IfNotPresent
+
+sssd:
+  config_file_version: 2
+  debug_level: 0x1310
+  domains: CERN
+  services: nss, pam
+
+nss:
+  debug_level: 0x1310
+  filter_groups: pulse,lemon,glance,cvmfs,qemu,nova,sshd,apache,rpc,puppet,root
+  filter_users: pulse,lemon,glance,cvmfs,qemu,nova,sshd,apache,rpc,puppet,root
+
+pam:
+  debug_level: 0x1310
+  pam_id_timeout: 600
+
+domains:
+  CERN:
+    access_provider: ldap
+    auth_provider: krb5
+    cache_credentials: True
+    chpass_provider: krb5
+    debug_level: 0x1310
+    id_provider: ldap
+    ignore_group_members: True
+    krb5_realm: CERN.CH
+    krb5_server: cerndc.cern.ch
+    ldap_access_filter: '(&(|(|(memberOf:1.2.840.113556.1.4.1941:=CN=batch-operations,OU=e-groups,OU=Workgroups,DC=cern,DC=ch)(memberOf:1.2.840.113556.1.4.1941:=CN=batch-vo-admins-interactive,OU=e-groups,OU=Workgroups,DC=cern,DC=ch)))(!(memberOf:1.2.840.113556.1.4.1941:=CN=LxPlus-Denied-Users,OU=e-groups,OU=Workgroups,DC=cern,DC=ch))(!(userAccountControl:1.2.840.113556.1.4.803:=2)))'
+    ldap_force_upper_case_realm: True
+    ldap_group_object_class: group
+    ldap_group_search_base: OU=Unix,OU=Workgroups,DC=cern,DC=ch
+    ldap_group_search_scope: one
+    ldap_id_use_start_tls: False
+    ldap_initgroups_use_matching_rule_in_chain: True
+    ldap_referrals: False
+    ldap_schema: AD
+    ldap_search_base: DC=cern,DC=ch
+    ldap_tls_cacertdir: /etc/openldap/cacerts
+    ldap_user_home_directory: unixHomeDirectory
+    ldap_user_name: sAMAccountName
+    ldap_user_object_class: person
+    ldap_user_principal: extensionAttribute4
+    ldap_user_search_base: OU=Users,OU=Organic Units,DC=cern,DC=ch
+    ldap_user_search_scope: one
+    ldap_uri: ldap://188.184.36.139:389,ldap://188.184.9.233:389,ldap://188.184.36.140:389,ldap://188.184.9.232:389
+    min_id: 1000

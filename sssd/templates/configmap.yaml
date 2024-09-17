@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sssd-config
+  labels:
+    app: {{ template "sssd.name" . }}
+    chart: {{ template "sssd.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  sssd.conf: |+
+    [sssd]
+    {{- range $key, $value := .Values.sssd }}
+    {{ $key }} = {{ $value }}
+    {{- end }}
+    
+    [nss]
+    {{- range $key, $value := .Values.nss }}
+    {{ $key }} = {{ $value }}
+    {{- end }}
+    
+    [pam]
+    {{- range $key, $value := .Values.pam }}
+    {{ $key }} = {{ $value }}
+    {{- end }}
+    
+    {{ range $name, $domain := .Values.domains }}
+    [domain/{{ $name }}]
+    {{- range $key, $value := $domain }}
+    {{ $key }} = {{ $value }}      
+    {{- end }}
+    {{ end }}
